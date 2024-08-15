@@ -1,0 +1,144 @@
+%{
+% multiBatchRegisterAndAverage
+% 
+% PURPOSE: Read raw OCT images and register + average them in sets. This
+%   version processes multiple sets in order.
+% 
+% INPUTS: See INPUTS/CONTROLS section of code.
+% 
+% OUTPUTS: Averaged/aligned grayscale images in outputPath.
+%
+% DEPENDENCIES: Basic MATLAB install (built/tested on R2020b but may work
+% 	on earlier versions). Also the Image processing/parallel processing
+%   toolboxes plus the following:
+%   - getFiles_F.m function
+%   - parfor_progress folder (shows current progress in command window)
+% 
+% AUTHOR: David C Alston (dalston2428@gmail.com) 1-2021.
+% 
+% NOTES:
+%   - Input images should be just a number etc with nothing else present (so
+%     that the program can do them in order).
+%       -- 1.png is the same as 0001.png, the program can handle both.
+%       -- It converts the filename directly to an integer and sorts by
+%          that integer to determine the raw image order.
+%
+%   - Can handle up to 1000 images per folder. More will require minor edits to code.
+%
+%   - The averaged images will appear in a semi random order while
+%     processing. This is normal and due to the way parallel processing works.
+%
+%   - Only use three character image extensions on input images (.png, .tif, etc)
+%
+%   - In order to reduce memory use this reads images from image files, 
+%     not the .oct itself (would have to load the entire OCT into memory).
+%
+%   - Supports any image formats supported by Matlab function imread() (see
+%     online documentation for this function).
+%
+%   - Assumes grayscale images. If reads RGBA, throws out all but one layer.
+%
+%   - If you use all your cores, this computer will be unresponsive until 
+%     processing is finished (no other work will be possible until it is done).
+%       -- Use no more than 4-6 CPU cores (assuming 8 available cores).
+%
+%   - To find the number of cores avaialble, type disp(feature('numcores'))
+%     into the command window and hit enter.
+%}
+clc
+close all
+clear
+%% INPUTS/CONTROLS
+mainPath = 'F:\Work local stuff\McCall Lab\OCT thickness analysis\Multi batch test\'; 
+%^ Folder that contains one folder per set of 1000 original OCT images.
+%^ Name the folder for the name of the OCT file (66272_OS_V_14x14_0_0000223 for example)
+%^ A new folder will be created for each input folder with the same name,
+%^ but with '-AVG' appended. This is where the output images are stored
+outFormat = '.png'; % Any format supported by imwrite() Matlab function ('.png', '.tif', etc)
+numCores = 5;       % Integer number of CPU cores to use. Depends heavily on available RAM
+iterPerRaw = 300;   % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate
+batchSize = 10;     % How many raw images to align/average together to produce 1 averaged image
+%% MAIN PROGRAM
+[inputFolders] = getFiles_F(mainPath, '0');
+numInFolders = size(inputFolders, 1);
+addpath('parfor_progress');
+[optimizer, metric] = imregconfig('monomodal');
+optimizer.MaximumIterations = iterPerRaw;
+optimizer.MinimumStepLength = 5e-4;
+for I = 1:numInFolders
+    currentParPool = parpool(numCores); % Initializes parallel pool
+    currFldr = inputFolders{I, 1};
+    currFldrNLen = size(inputFolders{I, 2}, 2); % Num chars in folder name
+    folderOnly = currFldr(1:end-currFldrNLen);
+    outFolderName = strcat(inputFolders{I, 2}, '-AVG');
+    outPath = fullfile(folderOnly, outFolderName);
+    if ~exist(outPath, 'dir'); mkdir(outPath); end
+    rawIms = getFiles_F(currFldr, '0');
+    for B = 1:size(rawIms, 1) % Sort by ID in case names are just 1.png, 2.png etc
+        name = rawIms{B, 2};
+        rawIms{B, 3} = str2double(name(1:end-4)); % Remove '.png', '.tif', etc
+    end
+    rawIms = sortrows(rawIms, 3);
+    numFiles = size(rawIms, 1); % This /batchSize is how many images will be made
+    if numFiles == 0
+        beep;
+        disp('ERROR:: No files found in inputPath. Check that it is correct. Closing...');
+        return
+    end
+    if mod(numFiles, batchSize) ~= 0
+        beep;
+        disp('ERROR:: There are not a multiple of batchSize images in inputPath. Closing...');
+        return
+    end
+    disp('Processing started at:');
+    disp(datetime('now'));
+    try
+        parfor_progress(numFiles/batchSize);
+        parfor N = 1:(numFiles/batchSize)
+            endIdx = N*batchSize; % Average/align in groups of batchSize
+            startIdx = endIdx-(batchSize-1);
+            image1 = imread(rawIms{startIdx, 1}); %#ok<PFBNS>
+            if numel(size(image1)) == 3 % RGB/RGBA image. Throw out all but first layer
+                image1 = image1(:, :, 1);
+            end
+            myAvg = double(image1);    % Initialize average with first image
+            fixedImg = double(image1); % Set fixed image as first image as well
+            for V = (startIdx+1):endIdx
+                movImg = imread(rawIms{V, 1});
+                if numel(size(movImg)) == 3 % RGB/RGBA image. Throw out all but first layer
+                    movImg = movImg(:, :, 1);
+                end
+                movImg = double(movImg); % Double for images to allow for addition without overflow of uint8
+                moved = imregister(movImg, fixedImg, 'rigid', optimizer, metric); % Rigid = translation + rotation only
+                myAvg = myAvg+moved;
+            end
+            myAvg = myAvg/batchSize;
+            if N == 1000
+                toAppend = '1000';
+            else
+                currNumStr = num2str(N);
+                zerosToAppend = 4-size(currNumStr, 2); % Add 1 to 3 zeros
+                toAppend = currNumStr;
+                for B = 1:zerosToAppend
+                    toAppend = strcat('0', toAppend);
+                end
+            end
+            name = strcat(toAppend, outFormat);
+            outFull = fullfile(outPath, name);
+            imwrite(mat2gray(myAvg), outFull);
+            parfor_progress;
+        end
+        parfor_progress(0);
+        delete(currentParPool);
+    catch % Delete the parallel pool if something goes wrong
+        beep;
+        disp('ERROR:: Something went wrong during processing. Closing parallel pool...');
+        parfor_progress(0);
+        delete(currentParPool);
+        return
+    end
+    fprintf('Processed %i of %i folders at:\n', I, numInFolders);
+    disp(datetime('now'));
+end
+disp('All processing succesfully finished at:');
+disp(datetime('now'));
