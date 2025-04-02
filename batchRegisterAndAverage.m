@@ -55,7 +55,7 @@ outPath = 'C:\Users\dalst\Desktop\Mouse Unaveraged b-scans 11-16-23\Stack 50\50 
 outFormat = '.png'; % Any format supported by imwrite() Matlab function ('.png', '.tif', etc)
 numCores = 9;       % Integer number of CPU cores to use. Depends heavily on available RAM. DCA NOTE - Use 9 on work PC
 iterPerRaw = 300;   % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate
-batchSize = 5;     % How many raw images to align/average together to produce 1 averaged image
+batchSize = 10;     % How many raw images to align/average together to produce 1 averaged image
 %% MAIN PROGRAM
 addpath('parfor_progress');
 [optimizer, metric] = imregconfig('monomodal');
