@@ -84,7 +84,7 @@ try
     parfor N = 1:(numFiles/batchSize)
         endIdx = N*batchSize; % Average/align in groups of batchSize
         startIdx = endIdx-(batchSize-1);
-        image1 = imread(rawIms{startIdx, 1}); %#ok<PFBNS>
+        image1 = imread(rawIms{startIdx, 1}); %#ok<PFBNS> % First image in set
         if numel(size(image1)) == 3 % RGB/RGBA image. Throw out all but first layer
             image1 = image1(:, :, 1);
         end
@@ -95,8 +95,7 @@ try
             if numel(size(movImg)) == 3 % RGB/RGBA image. Throw out all but first layer
                 movImg = movImg(:, :, 1);
             end
-            movImg = double(movImg); % Double for images to allow for addition without overflow of uint8
-            moved = imregister(movImg, fixedImg, 'rigid', optimizer, metric); % Rigid = translation + rotation only
+            moved = imregister(double(movImg), fixedImg, 'rigid', optimizer, metric); % Rigid = translation + rotation only
             myAvg = myAvg+moved;
         end
         myAvg = myAvg/batchSize;
