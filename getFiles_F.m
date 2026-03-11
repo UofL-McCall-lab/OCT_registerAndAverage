@@ -1,6 +1,6 @@
 function [files] = getFiles_F(folderPath, extFilt)
 %{
-% getFileArr_F
+% getFiles_F
 % 
 % PURPOSE: Get file names and paths as two columns of cells
 % 
