@@ -22,7 +22,7 @@
 %       -- It converts the filename directly to an integer and sorts by
 %          that integer to determine the raw image order.
 %
-%   - Can handle up to 1000 images. More will require minor edits to code.
+%   - Can handle up to 9999 images. More will require minor edits to code.
 %
 %   - The averaged images will appear in a semi random order while
 %     processing. This is normal and due to the way parallel processing works.
@@ -50,10 +50,10 @@ clear
 %% INPUTS/CONTROLS
 inputPath = 'C:\Users\dalst\Desktop\inFldr\F1'; % Folder with just input raw images and nothing else
 outPath = 'C:\Users\dalst\Desktop\outFldr';  % Empty folder for output
-outFormat = '.png'; % Any format supported by imwrite() Matlab function ('.png', '.tif', etc)
-numCores = 9;       % Integer number of CPU cores to use. Number of cores - 1 is a good default. Depends heavily on available RAM
-iterPerRaw = 300;   % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate. 300 default.
-batchSize = 10;     % How many raw images to align/average together to produce 1 averaged image. 10 default
+outExtension = '.png'; % Any format supported by imwrite() Matlab function ('.png', '.tif', etc)
+numCores = 9;          % Integer number of CPU cores to use. Number of cores - 1 is a good default. Depends heavily on available RAM
+iterPerRaw = 300;      % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate. 300 default.
+batchSize = 10;        % How many raw images to align/average together to produce 1 averaged image. 10 default
 %% MAIN PROGRAM
 addpath('parfor_progress');
 [optimizer, metric] = imregconfig('monomodal');
@@ -100,18 +100,8 @@ try
             myAvg = myAvg+moved;
         end
         myAvg = myAvg/batchSize;
-        if N == 1000
-            toAppend = '1000';
-        else
-            currNumStr = num2str(N);
-            zerosToAppend = 4-size(currNumStr, 2); % Add 1 to 3 zeros
-            toAppend = currNumStr;
-            for B = 1:zerosToAppend
-                toAppend = strcat('0', toAppend);
-            end
-        end
-        name = strcat(toAppend, outFormat);
-        outFull = fullfile(outPath, name);
+        outFName = strcat(num2str(N, '%.4i'), outExtension); %.4i limits max image number to 9999
+        outFull = fullfile(outPath, outFName);
         imwrite(mat2gray(myAvg), outFull);
         parfor_progress;
     end
