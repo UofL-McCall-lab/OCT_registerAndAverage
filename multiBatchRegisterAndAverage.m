@@ -14,7 +14,7 @@
 %   - getFiles_F.m function
 %   - parfor_progress folder (shows current progress in command window)
 % 
-% AUTHOR: David C Alston (dalston2428@gmail.com) 1-2021.
+% AUTHOR: David C Alston (david.alston@louisville.edu) 1-2021.
 % 
 % NOTES:
 %   - Input images should be just a number etc with nothing else present (so
@@ -23,12 +23,10 @@
 %       -- It converts the filename directly to an integer and sorts by
 %          that integer to determine the raw image order.
 %
-%   - Can handle up to 1000 images per folder. More will require minor edits to code.
+%   - Can handle up to 9999 images per folder. More will require minor edits to code.
 %
 %   - The averaged images will appear in a semi random order while
 %     processing. This is normal and due to the way parallel processing works.
-%
-%   - Only use three character image extensions on input images (.png, .tif, etc)
 %
 %   - In order to reduce memory use this reads images from image files, 
 %     not the .oct itself (would have to load the entire OCT into memory).
@@ -40,31 +38,30 @@
 %
 %   - If you use all your cores, this computer will be unresponsive until 
 %     processing is finished (no other work will be possible until it is done).
-%       -- Use no more than 4-6 CPU cores (assuming 8 available cores).
-%
-%   - To find the number of cores avaialble, type disp(feature('numcores'))
-%     into the command window and hit enter.
+%       -- NumCores - 1 is a good default.
+%       -- To find the number of cores avaialble, type 
+%           disp(feature('numcores')) into the command window and hit enter.
 %}
 clc
 close all
 clear
 %% INPUTS/CONTROLS
-mainPath = 'F:\Work local stuff\McCall Lab\OCT thickness analysis\Multi batch test\'; 
+mainPath = 'C:\Users\dalst\Desktop\inFldr'; 
 %^ Folder that contains one folder per set of 1000 original OCT images.
 %^ Name the folder for the name of the OCT file (66272_OS_V_14x14_0_0000223 for example)
 %^ A new folder will be created for each input folder with the same name,
 %^ but with '-AVG' appended. This is where the output images are stored
 outFormat = '.png'; % Any format supported by imwrite() Matlab function ('.png', '.tif', etc)
-numCores = 5;       % Integer number of CPU cores to use. Depends heavily on available RAM
-iterPerRaw = 300;   % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate
-batchSize = 10;     % How many raw images to align/average together to produce 1 averaged image
+numCores = 9;       % Integer number of CPU cores to use. Number of cores - 1 is a good default. Depends heavily on available RAM
+iterPerRaw = 300;   % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate. 300 default.
+batchSize = 10;     % How many raw images to align/average together to produce 1 averaged image. 10 default
 %% MAIN PROGRAM
 [inputFolders] = getFiles_F(mainPath, '0');
 numInFolders = size(inputFolders, 1);
 addpath('parfor_progress');
 [optimizer, metric] = imregconfig('monomodal');
 optimizer.MaximumIterations = iterPerRaw;
-optimizer.MinimumStepLength = 5e-4;
+optimizer.MinimumStepLength = 5e-4; % Default 5e-4
 for I = 1:numInFolders
     currentParPool = parpool(numCores); % Initializes parallel pool
     currFldr = inputFolders{I, 1};
@@ -75,8 +72,8 @@ for I = 1:numInFolders
     if ~exist(outPath, 'dir'); mkdir(outPath); end
     rawIms = getFiles_F(currFldr, '0');
     for B = 1:size(rawIms, 1) % Sort by ID in case names are just 1.png, 2.png etc
-        name = rawIms{B, 2};
-        rawIms{B, 3} = str2double(name(1:end-4)); % Remove '.png', '.tif', etc
+        [~, fName, ~] = fileparts(rawIms{B, 1});
+        rawIms{B, 3} = str2double(fName);
     end
     rawIms = sortrows(rawIms, 3);
     numFiles = size(rawIms, 1); % This /batchSize is how many images will be made
@@ -94,37 +91,26 @@ for I = 1:numInFolders
     disp(datetime('now'));
     try
         parfor_progress(numFiles/batchSize);
-        parfor N = 1:(numFiles/batchSize)
-            endIdx = N*batchSize; % Average/align in groups of batchSize
+        parfor setN = 1:(numFiles/batchSize)
+            endIdx = setN*batchSize; % Average/align in groups of batchSize
             startIdx = endIdx-(batchSize-1);
-            image1 = imread(rawIms{startIdx, 1}); %#ok<PFBNS>
-            if numel(size(image1)) == 3 % RGB/RGBA image. Throw out all but first layer
+            image1 = imread(rawIms{startIdx, 1}); %#ok<PFBNS> % First image in set
+            if numel(size(image1)) > 1 % RGB/RGBA image. Throw out all but first layer
                 image1 = image1(:, :, 1);
             end
             myAvg = double(image1);    % Initialize average with first image
             fixedImg = double(image1); % Set fixed image as first image as well
-            for V = (startIdx+1):endIdx
-                movImg = imread(rawIms{V, 1});
-                if numel(size(movImg)) == 3 % RGB/RGBA image. Throw out all but first layer
+            for imageN = (startIdx+1):endIdx
+                movImg = imread(rawIms{imageN, 1});
+                if numel(size(movImg)) > 1 % RGB/RGBA image. Throw out all but first layer
                     movImg = movImg(:, :, 1);
                 end
-                movImg = double(movImg); % Double for images to allow for addition without overflow of uint8
-                moved = imregister(movImg, fixedImg, 'rigid', optimizer, metric); % Rigid = translation + rotation only
+                moved = imregister(double(movImg), fixedImg, 'rigid', optimizer, metric); % Rigid = translation + rotation only
                 myAvg = myAvg+moved;
             end
             myAvg = myAvg/batchSize;
-            if N == 1000
-                toAppend = '1000';
-            else
-                currNumStr = num2str(N);
-                zerosToAppend = 4-size(currNumStr, 2); % Add 1 to 3 zeros
-                toAppend = currNumStr;
-                for B = 1:zerosToAppend
-                    toAppend = strcat('0', toAppend);
-                end
-            end
-            name = strcat(toAppend, outFormat);
-            outFull = fullfile(outPath, name);
+            outFName = strcat(num2str(setN, '%.4i'), outExtension); %.4i limits max image number to 9999
+            outFull = fullfile(outPath, outFName);
             imwrite(mat2gray(myAvg), outFull);
             parfor_progress;
         end
