@@ -14,7 +14,7 @@
 %   - getFiles_F.m function
 %   - parfor_progress folder (shows current progress in command window)
 % 
-% AUTHOR: David C Alston (dalston2428@gmail.com) 1-2021.
+% AUTHOR: David C Alston (david.alston@louisville.edu) 1-2021.
 % 
 % NOTES:
 %   - Input images should be just a number etc with nothing else present (so
@@ -55,16 +55,16 @@ mainPath = 'F:\Work local stuff\McCall Lab\OCT thickness analysis\Multi batch te
 %^ A new folder will be created for each input folder with the same name,
 %^ but with '-AVG' appended. This is where the output images are stored
 outFormat = '.png'; % Any format supported by imwrite() Matlab function ('.png', '.tif', etc)
-numCores = 5;       % Integer number of CPU cores to use. Depends heavily on available RAM
-iterPerRaw = 300;   % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate
-batchSize = 10;     % How many raw images to align/average together to produce 1 averaged image
+numCores = 5;       % Integer number of CPU cores to use. Number of cores - 1 is a good default. Depends heavily on available RAM
+iterPerRaw = 300;   % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate. 300 default.
+batchSize = 10;     % How many raw images to align/average together to produce 1 averaged image. 10 default
 %% MAIN PROGRAM
 [inputFolders] = getFiles_F(mainPath, '0');
 numInFolders = size(inputFolders, 1);
 addpath('parfor_progress');
 [optimizer, metric] = imregconfig('monomodal');
 optimizer.MaximumIterations = iterPerRaw;
-optimizer.MinimumStepLength = 5e-4;
+optimizer.MinimumStepLength = 5e-4; % Default 5e-4
 for I = 1:numInFolders
     currentParPool = parpool(numCores); % Initializes parallel pool
     currFldr = inputFolders{I, 1};

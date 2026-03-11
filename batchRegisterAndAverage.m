@@ -1,5 +1,5 @@
 %{
-% batchRegisterAndAverage
+% batchRegisterAndAverage.m
 % 
 % PURPOSE: Read raw OCT images and register + average them in sets.
 % 
@@ -13,7 +13,7 @@
 %   - getFiles_F.m function
 %   - parfor_progress folder (shows current progress in command window)
 % 
-% AUTHOR: David C Alston (dalston2428@gmail.com) 1-2021.
+% AUTHOR: David C Alston (david.alston@louisville.edu) 1-2021.
 % 
 % NOTES:
 %   - Input images should be just a number etc with nothing else present (so
@@ -53,14 +53,14 @@ clear
 inputPath = 'C:\Users\dalst\Desktop\Mouse Unaveraged b-scans 11-16-23\Stack 50\50 denoised by 300e version'; % Folder with just input raw images and nothing else
 outPath = 'C:\Users\dalst\Desktop\Mouse Unaveraged b-scans 11-16-23\Stack 50\50 denoised by 300e version - autoreg batch 5';  % Empty folder for output
 outFormat = '.png'; % Any format supported by imwrite() Matlab function ('.png', '.tif', etc)
-numCores = 9;       % Integer number of CPU cores to use. Depends heavily on available RAM. DCA NOTE - Use 9 on work PC
-iterPerRaw = 300;   % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate
-batchSize = 10;     % How many raw images to align/average together to produce 1 averaged image
+numCores = 9;       % Integer number of CPU cores to use. Number of cores - 1 is a good default. Depends heavily on available RAM
+iterPerRaw = 300;   % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate. 300 default.
+batchSize = 10;     % How many raw images to align/average together to produce 1 averaged image. 10 default
 %% MAIN PROGRAM
 addpath('parfor_progress');
 [optimizer, metric] = imregconfig('monomodal');
 optimizer.MaximumIterations = iterPerRaw;
-optimizer.MinimumStepLength = 5e-4;
+optimizer.MinimumStepLength = 5e-4; % Default 5e-4
 rawIms = getFiles_F(inputPath, '0');
 for B = 1:size(rawIms, 1) % Sort by ID in case names are just 1.png, 2.png etc
     name = rawIms{B, 2};

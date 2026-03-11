@@ -16,7 +16,7 @@ function [files] = getFiles_F(folderPath, extFilt)
 % DEPENDENCIES: Basic MATLAB install (built/tested on R2019b but may work
 % 	on earlier versions).
 % 
-% AUTHOR: David C Alston (dalston2428@gmail.com) 2020.
+% AUTHOR: David C Alston (david.alston@louisville.edu) 2020.
 % 
 % NOTES:
 %}
@@ -46,4 +46,3 @@ for n = 1:1:numFiles
     files{n,2} = currDir(n).name;
 end
 end
-
