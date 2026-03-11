@@ -38,9 +38,8 @@
 %   - If you use all your cores, this computer will be unresponsive until 
 %     processing is finished (no other work will be possible until it is done).
 %       -- NumCores - 1 is a good default.
-%
-%   - To find the number of cores avaialble, type disp(feature('numcores'))
-%     into the command window and hit enter.
+%       -- To find the number of cores avaialble, type 
+%           disp(feature('numcores')) into the command window and hit enter.
 %}
 clc
 close all
@@ -79,8 +78,8 @@ disp(datetime('now'));
 currentParPool = parpool(numCores); % Initializes parallel pool
 try
     parfor_progress(numFiles/batchSize);
-    parfor N = 1:(numFiles/batchSize)
-        endIdx = N*batchSize; % Average/align in groups of batchSize
+    parfor setN = 1:(numFiles/batchSize)
+        endIdx = setN*batchSize; % Average/align in groups of batchSize
         startIdx = endIdx-(batchSize-1);
         image1 = imread(rawIms{startIdx, 1}); %#ok<PFBNS> % First image in set
         if numel(size(image1)) > 1 % RGB/RGBA image. Throw out all but first layer
@@ -88,8 +87,8 @@ try
         end
         myAvg = double(image1);    % Initialize average with first image
         fixedImg = double(image1); % Set fixed image as first image as well
-        for V = (startIdx+1):endIdx
-            movImg = imread(rawIms{V, 1});
+        for imageN = (startIdx+1):endIdx
+            movImg = imread(rawIms{imageN, 1});
             if numel(size(movImg)) > 1 % RGB/RGBA image. Throw out all but first layer
                 movImg = movImg(:, :, 1);
             end
@@ -97,7 +96,7 @@ try
             myAvg = myAvg+moved;
         end
         myAvg = myAvg/batchSize;
-        outFName = strcat(num2str(N, '%.4i'), outExtension); %.4i limits max image number to 9999
+        outFName = strcat(num2str(setN, '%.4i'), outExtension); %.4i limits max image number to 9999
         outFull = fullfile(outPath, outFName);
         imwrite(mat2gray(myAvg), outFull);
         parfor_progress;
