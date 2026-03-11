@@ -38,7 +38,7 @@
 %
 %   - If you use all your cores, this computer will be unresponsive until 
 %     processing is finished (no other work will be possible until it is done).
-%       -- Use no more than 4-6 CPU cores (assuming 8 available cores).
+%       -- NumCores - 1 is a good default.
 %
 %   - To find the number of cores avaialble, type disp(feature('numcores'))
 %     into the command window and hit enter.
@@ -96,14 +96,14 @@ for I = 1:numInFolders
             endIdx = N*batchSize; % Average/align in groups of batchSize
             startIdx = endIdx-(batchSize-1);
             image1 = imread(rawIms{startIdx, 1}); %#ok<PFBNS> % First image in set
-            if numel(size(image1)) == 3 % RGB/RGBA image. Throw out all but first layer
+            if numel(size(image1)) > 1 % RGB/RGBA image. Throw out all but first layer
                 image1 = image1(:, :, 1);
             end
             myAvg = double(image1);    % Initialize average with first image
             fixedImg = double(image1); % Set fixed image as first image as well
             for V = (startIdx+1):endIdx
                 movImg = imread(rawIms{V, 1});
-                if numel(size(movImg)) == 3 % RGB/RGBA image. Throw out all but first layer
+                if numel(size(movImg)) > 1 % RGB/RGBA image. Throw out all but first layer
                     movImg = movImg(:, :, 1);
                 end
                 moved = imregister(double(movImg), fixedImg, 'rigid', optimizer, metric); % Rigid = translation + rotation only
