@@ -27,8 +27,6 @@
 %   - The averaged images will appear in a semi random order while
 %     processing. This is normal and due to the way parallel processing works.
 %
-%   - Only use three character image extensions on input images (.png, .tif, etc)
-%
 %   - In order to reduce memory use this reads images from image files, 
 %     not the .oct itself (would have to load the entire OCT into memory).
 %
@@ -50,8 +48,8 @@ clc
 close all
 clear
 %% INPUTS/CONTROLS
-inputPath = 'C:\Users\dalst\Desktop\Mouse Unaveraged b-scans 11-16-23\Stack 50\50 denoised by 300e version'; % Folder with just input raw images and nothing else
-outPath = 'C:\Users\dalst\Desktop\Mouse Unaveraged b-scans 11-16-23\Stack 50\50 denoised by 300e version - autoreg batch 5';  % Empty folder for output
+inputPath = 'C:\Users\dalst\Desktop\inFldr\F1'; % Folder with just input raw images and nothing else
+outPath = 'C:\Users\dalst\Desktop\outFldr';  % Empty folder for output
 outFormat = '.png'; % Any format supported by imwrite() Matlab function ('.png', '.tif', etc)
 numCores = 9;       % Integer number of CPU cores to use. Number of cores - 1 is a good default. Depends heavily on available RAM
 iterPerRaw = 300;   % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate. 300 default.
@@ -63,8 +61,8 @@ optimizer.MaximumIterations = iterPerRaw;
 optimizer.MinimumStepLength = 5e-4; % Default 5e-4
 rawIms = getFiles_F(inputPath, '0');
 for B = 1:size(rawIms, 1) % Sort by ID in case names are just 1.png, 2.png etc
-    name = rawIms{B, 2};
-    rawIms{B, 3} = str2double(name(1:end-4)); % Remove '.png', '.tif', etc    
+    [~, fName, ~] = fileparts(rawIms{B, 1});
+    rawIms{B, 3} = str2double(fName);
 end
 rawIms = sortrows(rawIms, 3);
 numFiles = size(rawIms, 1); % This /batchSize is how many images will be made

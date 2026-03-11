@@ -28,8 +28,6 @@
 %   - The averaged images will appear in a semi random order while
 %     processing. This is normal and due to the way parallel processing works.
 %
-%   - Only use three character image extensions on input images (.png, .tif, etc)
-%
 %   - In order to reduce memory use this reads images from image files, 
 %     not the .oct itself (would have to load the entire OCT into memory).
 %
@@ -75,8 +73,8 @@ for I = 1:numInFolders
     if ~exist(outPath, 'dir'); mkdir(outPath); end
     rawIms = getFiles_F(currFldr, '0');
     for B = 1:size(rawIms, 1) % Sort by ID in case names are just 1.png, 2.png etc
-        name = rawIms{B, 2};
-        rawIms{B, 3} = str2double(name(1:end-4)); % Remove '.png', '.tif', etc
+        [~, fName, ~] = fileparts(rawIms{B, 1});
+        rawIms{B, 3} = str2double(fName);
     end
     rawIms = sortrows(rawIms, 3);
     numFiles = size(rawIms, 1); % This /batchSize is how many images will be made
