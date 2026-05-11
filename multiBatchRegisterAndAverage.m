@@ -14,7 +14,7 @@
 %   - getFiles_F.m function
 %   - parfor_progress folder (shows current progress in command window)
 % 
-% AUTHOR: David C Alston (david.alston@louisville.edu) 1-2021.
+% AUTHOR: David C Alston (david.alston@louisville.edu) 5-2026.
 % 
 % NOTES:
 %   - Input images should be just a number etc with nothing else present (so
@@ -51,7 +51,7 @@ mainPath = 'C:\Users\dalst\Desktop\inFldr';
 %^ Name the folder for the name of the OCT file (66272_OS_V_14x14_0_0000223 for example)
 %^ A new folder will be created for each input folder with the same name,
 %^ but with '-AVG' appended. This is where the output images are stored
-outFormat = '.png'; % Any format supported by imwrite() Matlab function ('.png', '.tif', etc)
+outExtension = '.png'; % Any format supported by imwrite() Matlab function ('.png', '.tif', etc)
 numCores = 9;       % Integer number of CPU cores to use. Number of cores - 1 is a good default. Depends heavily on available RAM
 iterPerRaw = 300;   % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate. 300 default.
 batchSize = 10;     % How many raw images to align/average together to produce 1 averaged image. 10 default
