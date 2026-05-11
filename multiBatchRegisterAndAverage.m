@@ -8,7 +8,7 @@
 % 
 % OUTPUTS: Averaged/aligned grayscale images in outputPath.
 %
-% DEPENDENCIES: Basic MATLAB install (built/tested on R2020b but may work
+% DEPENDENCIES: Basic MATLAB install (built/tested on R2025b but may work
 % 	on earlier versions). Also the Image processing/parallel processing
 %   toolboxes plus the following:
 %   - getFiles_F.m function
@@ -46,7 +46,7 @@ clc
 close all
 clear
 %% INPUTS/CONTROLS
-mainPath = 'C:\Users\dalst\Desktop\inFldr'; 
+mainPath = 'C:\C_WorkLocal\McCall Lab\OCT\Willie example OCT\multiBatchRegTestFldr'; 
 %^ Folder that contains one folder per set of 1000 original OCT images.
 %^ Name the folder for the name of the OCT file (66272_OS_V_14x14_0_0000223 for example)
 %^ A new folder will be created for each input folder with the same name,
@@ -89,40 +89,32 @@ for I = 1:numInFolders
     end
     disp('Processing started at:');
     disp(datetime('now'));
-    try
-        parfor_progress(numFiles/batchSize);
-        parfor setN = 1:(numFiles/batchSize)
-            endIdx = setN*batchSize; % Average/align in groups of batchSize
-            startIdx = endIdx-(batchSize-1);
-            image1 = imread(rawIms{startIdx, 1}); %#ok<PFBNS> % First image in set
-            if numel(size(image1)) > 1 % RGB/RGBA image. Throw out all but first layer
-                image1 = image1(:, :, 1);
-            end
-            myAvg = double(image1);    % Initialize average with first image
-            fixedImg = double(image1); % Set fixed image as first image as well
-            for imageN = (startIdx+1):endIdx
-                movImg = imread(rawIms{imageN, 1});
-                if numel(size(movImg)) > 1 % RGB/RGBA image. Throw out all but first layer
-                    movImg = movImg(:, :, 1);
-                end
-                moved = imregister(double(movImg), fixedImg, 'rigid', optimizer, metric); % Rigid = translation + rotation only
-                myAvg = myAvg+moved;
-            end
-            myAvg = myAvg/batchSize;
-            outFName = strcat(num2str(setN, '%.4i'), outExtension); %.4i limits max image number to 9999
-            outFull = fullfile(outPath, outFName);
-            imwrite(mat2gray(myAvg), outFull);
-            parfor_progress;
+    parfor_progress(numFiles/batchSize);
+    parfor setN = 1:(numFiles/batchSize)
+        endIdx = setN*batchSize; % Average/align in groups of batchSize
+        startIdx = endIdx-(batchSize-1);
+        image1 = imread(rawIms{startIdx, 1}); %#ok<PFBNS> % First image in set
+        if numel(size(image1)) > 1 % RGB/RGBA image. Throw out all but first layer
+            image1 = image1(:, :, 1);
         end
-        parfor_progress(0);
-        delete(currentParPool);
-    catch % Delete the parallel pool if something goes wrong
-        beep;
-        disp('ERROR:: Something went wrong during processing. Closing parallel pool...');
-        parfor_progress(0);
-        delete(currentParPool);
-        return
+        myAvg = double(image1);    % Initialize average with first image
+        fixedImg = double(image1); % Set fixed image as first image as well
+        for imageN = (startIdx+1):endIdx
+            movImg = imread(rawIms{imageN, 1});
+            if numel(size(movImg)) > 1 % RGB/RGBA image. Throw out all but first layer
+                movImg = movImg(:, :, 1);
+            end
+            moved = imregister(double(movImg), fixedImg, 'rigid', optimizer, metric); % Rigid = translation + rotation only
+            myAvg = myAvg+moved;
+        end
+        myAvg = myAvg/batchSize;
+        outFName = strcat(num2str(setN, '%.4i'), outExtension); %.4i limits max image number to 9999
+        outFull = fullfile(outPath, outFName);
+        imwrite(mat2gray(myAvg), outFull);
+        parfor_progress;
     end
+    parfor_progress(0);
+    delete(currentParPool);
     fprintf('Processed %i of %i folders at:\n', I, numInFolders);
     disp(datetime('now'));
 end
