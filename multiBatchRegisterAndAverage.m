@@ -47,14 +47,14 @@ close all
 clear
 %% INPUTS/CONTROLS
 mainPath = 'C:\C_WorkLocal\McCall Lab\OCT\Willie example OCT\multiBatchRegTestFldr'; 
-%^ Folder that contains one folder per set of 1000 original OCT images.
-%^ Name the folder for the name of the OCT file (66272_OS_V_14x14_0_0000223 for example)
+%^ Folder that contains one subfolder per set of 1000 original OCT b-scans.
+%^ Make the name of that subfolder the name of the OCT file (66272_OS_V_14x14_0_0000223 for example)
 %^ A new folder will be created for each input folder with the same name,
 %^ but with '-AVG' appended. This is where the output images are stored
 outExtension = '.png'; % Any format supported by imwrite() Matlab function ('.png', '.tif', etc)
-numCores = 9;       % Integer number of CPU cores to use. Number of cores - 1 is a good default. Depends heavily on available RAM
-iterPerRaw = 300;   % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate. 300 default.
-batchSize = 10;     % How many raw images to align/average together to produce 1 averaged image. 10 default
+numCores = 9;          % Integer number of CPU cores to use. Number of cores - 1 is a good default. Depends heavily on available RAM.
+iterPerRaw = 300;      % # of iterations of optimizer per raw image in registration. Smaller = faster but less accurate. 300 default.
+batchSize = 10;        % How many raw images to align/average together to produce 1 averaged image. 10 default.
 %% MAIN PROGRAM
 [inputFolders] = getFiles_F(mainPath, '0');
 numInFolders = size(inputFolders, 1);

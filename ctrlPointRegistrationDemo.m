@@ -1,6 +1,7 @@
 %{
 Demo of using cpselect() to register images. Requires image processing toolbox.
 10-2020 David Alston
+david.alston@louisville.edu
 %}
 clc
 close all
